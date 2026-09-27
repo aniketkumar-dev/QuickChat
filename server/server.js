@@ -17,32 +17,40 @@ import { Server } from "socket.io";
 
 // Create Express app and HTTP server
 const app = express();
-const server = http.createServer(app)
-
-// Initialize socket.io server
-export const io = new Server(server, {
-    cors: {origin: "*"}
-})
+const server = http.createServer(app);
 
 // Store online users
 export const userSocketMap = {}; // { userId: socketId }
 
-// Socket.io connection handler
-io.on("connection", (socket)=>{
-    const userId = socket.handshake.query.userId;
-    console.log("User Connected", userId);
+// Initialize socket.io server safely
+export let io = null;
 
-    if(userId) userSocketMap[userId] = socket.id;
-    
-    // Emit online users to all connected clients
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+if (!process.env.VERCEL) {
+    try {
+        io = new Server(server, {
+            cors: { origin: "*" }
+        });
 
-    socket.on("disconnect", ()=>{
-        console.log("User Disconnected", userId);
-        delete userSocketMap[userId];
-        io.emit("getOnlineUsers", Object.keys(userSocketMap))
-    })
-})
+        // Socket.io connection handler
+        io.on("connection", (socket) => {
+            const userId = socket.handshake.query.userId;
+            console.log("User Connected", userId);
+
+            if (userId) userSocketMap[userId] = socket.id;
+
+            // Emit online users to all connected clients
+            io.emit("getOnlineUsers", Object.keys(userSocketMap));
+
+            socket.on("disconnect", () => {
+                console.log("User Disconnected", userId);
+                delete userSocketMap[userId];
+                io.emit("getOnlineUsers", Object.keys(userSocketMap));
+            });
+        });
+    } catch (e) {
+        console.log("Socket initialization skipped/failed:", e.message);
+    }
+}
 
 // Middleware setup
 app.use(express.json({ limit: "50mb" }));
@@ -60,16 +68,25 @@ app.use(async (req, res, next) => {
 });
 
 // Routes setup
-app.use("/api/status", (req, res)=> res.send("Server is live"));
+app.use("/api/status", (req, res) => res.send("Server is live"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
+
+// Global Error Handler Middleware
+app.use((err, req, res, next) => {
+    console.error("SERVER ERROR:", err);
+    res.status(500).json({
+        success: false,
+        message: err.message || "Internal Server Error"
+    });
+});
 
 // Connect to MongoDB safely for local/persistent runs
 connectDB().catch(err => console.log("Initial DB error:", err.message));
 
 if (!process.env.VERCEL) {
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, ()=> console.log("Server is running on PORT: " + PORT));
+    server.listen(PORT, () => console.log("Server is running on PORT: " + PORT));
 }
 
 export default app;
