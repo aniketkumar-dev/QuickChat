@@ -61,10 +61,14 @@ app.use(cors());
 app.use(async (req, res, next) => {
     try {
         await connectDB();
+        next();
     } catch (e) {
         console.log("Middleware DB connect error:", e.message);
+        res.status(500).json({
+            success: false,
+            message: "Database Connection Error: " + e.message
+        });
     }
-    next();
 });
 
 // Routes setup
