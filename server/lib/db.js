@@ -1,26 +1,19 @@
-// import mongoose from "mongoose";
-
-// // Function to connect to the mongodb database
-// export const connectDB = async () =>{
-//     try {
-//         mongoose.connection.on('connected', ()=> console.log('Database Connected'));
-//        await mongoose.connect(`${process.env.MONGODB_URI}/chat-app`) 
-//     } catch (error) {
-//         console.log(error);
-//     }
-// }
 import mongoose from "mongoose";
+
+const DEFAULT_URI = "mongodb+srv://aniketgupta2801_db_user:Aniket_2805@cluster0.tfbepno.mongodb.net/QuickChat?appName=Cluster0";
 
 // Function to connect to the mongodb database
 export const connectDB = async () => {
     try {
-        mongoose.connection.on('connected', () => {
-            console.log('Database Connected');
-        });
+        if (mongoose.connection.readyState >= 1) {
+            return;
+        }
 
-        await mongoose.connect(process.env.MONGODB_URI);
+        const uri = process.env.MONGODB_URI || DEFAULT_URI;
+        await mongoose.connect(uri);
+        console.log("Database Connected");
 
     } catch (error) {
-        console.log(error);
+        console.log("DB Connection Error:", error.message);
     }
-}
+};

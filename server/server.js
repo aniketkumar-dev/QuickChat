@@ -49,15 +49,23 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 
+// Ensure MongoDB is connected before processing API requests
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+    } catch (e) {
+        console.log("Middleware DB connect error:", e.message);
+    }
+    next();
+});
 
 // Routes setup
 app.use("/api/status", (req, res)=> res.send("Server is live"));
 app.use("/api/auth", userRouter);
-app.use("/api/messages", messageRouter)
+app.use("/api/messages", messageRouter);
 
-
-// Connect to MongoDB
-await connectDB();
+// Connect to MongoDB safely for local/persistent runs
+connectDB().catch(err => console.log("Initial DB error:", err.message));
 
 if (!process.env.VERCEL) {
     const PORT = process.env.PORT || 5000;
