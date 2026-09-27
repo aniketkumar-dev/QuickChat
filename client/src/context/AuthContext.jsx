@@ -173,9 +173,20 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:6001";
+const getBackendUrl = () => {
+    if (import.meta.env.VITE_BACKEND_URL) {
+        return import.meta.env.VITE_BACKEND_URL;
+    }
+    if (import.meta.env.DEV) {
+        return "http://localhost:6001";
+    }
+    return "";
+};
 
-axios.defaults.baseURL = backendUrl;
+const backendUrl = getBackendUrl();
+if (backendUrl) {
+    axios.defaults.baseURL = backendUrl;
+}
 
 export const AuthContext = createContext();
 
@@ -296,7 +307,7 @@ export const AuthProvider = ({ children }) => {
 
         if (!userData || socket?.connected) return;
 
-        const newSocket = io(backendUrl, {
+        const newSocket = io(backendUrl || window.location.origin, {
             query: {
                 userId: userData._id,
             }
