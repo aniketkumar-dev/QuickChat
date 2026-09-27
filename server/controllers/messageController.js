@@ -117,19 +117,28 @@ export const sendMessage = async (req, res) => {
         const receiverId = req.params.id;
         const senderId = req.user._id;
 
-        let imageUrl;
+        let imageUrl = null;
 
-        // Upload image to Cloudinary
+        // Upload image to Cloudinary with fallback if Cloudinary credentials/permissions fail
         if (image) {
-            const uploadResponse = await cloudinary.uploader.upload(image);
-            imageUrl = uploadResponse.secure_url;
+            imageUrl = image;
+            if (typeof image === "string" && image.startsWith("data:image")) {
+                try {
+                    const uploadResponse = await cloudinary.uploader.upload(image);
+                    if (uploadResponse && uploadResponse.secure_url) {
+                        imageUrl = uploadResponse.secure_url;
+                    }
+                } catch (cloudErr) {
+                    console.log("Cloudinary chat image upload warning, using direct image fallback:", cloudErr.message);
+                }
+            }
         }
 
         // Create new message
         const newMessage = await Message.create({
             senderId,
             receiverId,
-            text,
+            text: text || "",
             image: imageUrl
         });
 
@@ -146,7 +155,7 @@ export const sendMessage = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error.message);
+        console.log("SEND MESSAGE ERROR:", error.message);
         res.json({
             success: false,
             message: error.message

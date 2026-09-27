@@ -63,20 +63,32 @@ export const checkAuth = (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { profilePic, bio, fullName } = req.body;
-
         const userId = req.user._id;
-        let updatedUser;
 
-        if (!profilePic) {
-            updatedUser = await User.findByIdAndUpdate(userId, { bio, fullName }, { new: true });
-        } else {
-            const upload = await cloudinary.uploader.upload(profilePic);
+        const updateFields = {};
+        if (bio !== undefined) updateFields.bio = bio;
+        if (fullName !== undefined) updateFields.fullName = fullName;
 
-            updatedUser = await User.findByIdAndUpdate(userId, { profilePic: upload.secure_url, bio, fullName }, { new: true });
+        if (profilePic) {
+            let finalProfilePic = profilePic;
+            if (typeof profilePic === "string" && profilePic.startsWith("data:image")) {
+                try {
+                    const upload = await cloudinary.uploader.upload(profilePic);
+                    if (upload && upload.secure_url) {
+                        finalProfilePic = upload.secure_url;
+                    }
+                } catch (cloudErr) {
+                    console.log("Cloudinary profile upload warning, using direct image fallback:", cloudErr.message);
+                }
+            }
+            updateFields.profilePic = finalProfilePic;
         }
-        res.json({ success: true, user: updatedUser })
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateFields, { new: true }).select("-password");
+        res.json({ success: true, user: updatedUser, message: "Profile updated successfully" });
+
     } catch (error) {
         console.log("PROFILE UPDATE ERROR:", error);
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
 }

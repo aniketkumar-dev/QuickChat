@@ -150,22 +150,18 @@ const Sidebar = ({ selectedUser, setSelectedUser }) => {
 
     const [search, setSearch] = useState('')
 
-//     useEffect(() => {
-//     if (authUser) {
-//         getUsers()
-//     }
-// }, [authUser])
-
-useEffect(() => {
-    console.log("authUser:", authUser)
-
-    if (authUser) {
+    useEffect(() => {
         getUsers()
-    }
-}, [authUser])
+    }, [])
 
-    const filteredUsers = users.filter((user) =>
-        user.fullName.toLowerCase().includes(search.toLowerCase())
+    useEffect(() => {
+        if (authUser) {
+            getUsers()
+        }
+    }, [authUser])
+
+    const filteredUsers = (users || []).filter((user) =>
+        (user.fullName || '').toLowerCase().includes(search.toLowerCase())
     )
 
     return (

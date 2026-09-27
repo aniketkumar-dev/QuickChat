@@ -182,7 +182,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
 
     const [token, setToken] = useState(
-        sessionStorage.getItem("token")
+        localStorage.getItem("token") || sessionStorage.getItem("token")
     );
 
     const [authUser, setAuthUser] = useState(null);
@@ -198,6 +198,7 @@ export const AuthProvider = ({ children }) => {
                 setAuthUser(data.user);
                 connectSocket(data.user);
             } else {
+                localStorage.removeItem("token");
                 sessionStorage.removeItem("token");
                 setToken(null);
                 setAuthUser(null);
@@ -224,6 +225,7 @@ export const AuthProvider = ({ children }) => {
 
                 setToken(data.token);
 
+                localStorage.setItem("token", data.token);
                 sessionStorage.setItem("token", data.token);
 
                 connectSocket(data.userData);
@@ -246,6 +248,7 @@ export const AuthProvider = ({ children }) => {
     // Logout function
     const logout = () => {
 
+        localStorage.removeItem("token");
         sessionStorage.removeItem("token");
 
         setToken(null);
@@ -311,7 +314,7 @@ export const AuthProvider = ({ children }) => {
 
         const initAuth = async () => {
 
-            const savedToken = sessionStorage.getItem("token");
+            const savedToken = localStorage.getItem("token") || sessionStorage.getItem("token");
 
             if (!savedToken) {
                 return;
